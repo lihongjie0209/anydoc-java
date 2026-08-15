@@ -19,16 +19,24 @@ if [ ! -d "$CLASSES/dev" ]; then
   exit 1
 fi
 
-VERSION=$(awk '
-  /<parent>/ { skip=1 }
-  /<\/parent>/ { skip=0 }
-  !skip && /<version>/ {
-    sub(/.*<version>/, ""); sub(/<\/version>.*/, ""); print; exit
-  }
-' "$ROOT/pom.xml")
-
+if [ -z "${VERSION:-}" ]; then
+  VERSION=$("$ROOT/scripts/git-version.sh" 2>/dev/null) || VERSION=""
+fi
 if [ -z "$VERSION" ]; then
-  echo "error: could not read version from pom.xml" >&2
+  VERSION=$(awk '
+    /<parent>/ { skip=1 }
+    /<\/parent>/ { skip=0 }
+    !skip && /<revision>/ {
+      sub(/.*<revision>/, ""); sub(/<\/revision>.*/, ""); print; exit
+    }
+    !skip && /<version>/ {
+      sub(/.*<version>/, ""); sub(/<\/version>.*/, ""); print; exit
+    }
+  ' "$ROOT/pom.xml")
+fi
+
+if [ -z "$VERSION" ] || [ "$VERSION" = '${revision}' ]; then
+  echo "error: set VERSION= or tag HEAD (vX.Y.Z)" >&2
   exit 1
 fi
 
