@@ -89,8 +89,8 @@ dependencies = [
 
 [[package]]
 name = "anydoc"
-version = "0.1.6"
-source = "git+https://github.com/firecrawl/anydoc?tag=v0.1.6#2fc6c7ac5a4e60403eb7e2967dd631cd6c2ee95c"
+version = "0.1.9"
+source = "git+https://github.com/firecrawl/anydoc?tag=v0.1.9#e754e1d33a1a540ebc9226e36f11d3f401852c9e"
 dependencies = [
  "calamine",
  "cfb",
@@ -860,9 +860,9 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "pdf-inspector"
-version = "0.1.8"
+version = "1.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd2f755e49ad38eafbc82ba2bec1c59d57b5bf829b13a8f35e4263bc8913df3a"
+checksum = "1e024ae242c514e2adf6aee186678e0eabdc2e5ecfbb2159186881b4498593cb"
 dependencies = [
  "env_logger",
  "include_dir",
