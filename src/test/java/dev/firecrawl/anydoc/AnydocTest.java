@@ -20,13 +20,11 @@ import org.junit.jupiter.api.Test;
 
 class AnydocTest {
 
-    private static final Path FIXTURES =
-            Path.of(System.getProperty("anydoc.fixtures", "../anydoc/tests/fixtures"));
-    private static final Path OUTLINE = FIXTURES.resolve("docx/handmade-outline.docx");
-    private static final Path RICH = FIXTURES.resolve("docx/handmade-rich.docx");
-    private static final Path CSV = FIXTURES.resolve("csv/sheet.csv");
-    private static final Path ENCRYPTED = FIXTURES.resolve("malformed/encrypted--errors.odt");
-    private static final Path ZIPBOMB = FIXTURES.resolve("abuse/zipbomb--errors.docx");
+    private static final Path OUTLINE = Fixtures.path("docx", "handmade-outline.docx");
+    private static final Path RICH = Fixtures.path("docx", "handmade-rich.docx");
+    private static final Path CSV = Fixtures.path("csv", "sheet.csv");
+    private static final Path ENCRYPTED = Fixtures.path("malformed", "encrypted--errors.odt");
+    private static final Path ZIPBOMB = Fixtures.path("abuse", "zipbomb--errors.docx");
 
     @Test
     void toMarkdownDetectsTheFormatFromTheFileContent() throws IOException {
@@ -127,6 +125,57 @@ class AnydocTest {
     @Test
     void unreadableFilesRaiseIoException() {
         assertThrows(NoSuchFileException.class, () -> Anydoc.toMarkdown("no-such-file.docx"));
+        assertThrows(NoSuchFileException.class, () -> Anydoc.toMarkdown(Path.of("no-such-file.docx")));
+    }
+
+    @Test
+    void pathAndStringOverloadsAgree() throws IOException {
+        assertEquals(Anydoc.toMarkdown(OUTLINE.toString()), Anydoc.toMarkdown(OUTLINE));
+    }
+
+    @Test
+    void toDocumentRejectsEncryptedFilesToo() throws IOException {
+        EncryptedException error =
+                assertThrows(
+                        EncryptedException.class,
+                        () -> Anydoc.toDocument(Files.readAllBytes(ENCRYPTED), Format.ODT));
+        assertEquals("encrypted", error.code());
+    }
+
+    @Test
+    void recoverableMalformedDocumentsStillConvert() throws IOException {
+        String markdown = Anydoc.toMarkdown(Fixtures.path("malformed", "unclosed--recovers.docx"));
+        assertTrue(markdown.contains("Unclosed paragraph text"), markdown);
+    }
+
+    @Test
+    void truncatedPackagesAreMalformed() throws IOException {
+        MalformedException error =
+                assertThrows(
+                        MalformedException.class,
+                        () -> Anydoc.toMarkdown(Fixtures.path("malformed", "truncated--errors.docx")));
+        assertEquals("malformed", error.code());
+        assertTrue(error.getMessage().contains("malformed"), error.getMessage());
+    }
+
+    @Test
+    void imageBombHitsAResourceLimit() throws IOException {
+        ResourceLimitException error =
+                assertThrows(
+                        ResourceLimitException.class,
+                        () ->
+                                Anydoc.toMarkdownBytes(
+                                        Fixtures.bytes("abuse", "imagebomb--errors.docx"), Format.DOCX));
+        assertEquals("resourceLimit", error.code());
+        assertFalse(error.limit().isBlank());
+    }
+
+    @Test
+    void nullConversionArgumentsThrowNpe() {
+        assertThrows(NullPointerException.class, () -> Anydoc.toMarkdown((String) null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toMarkdown((Path) null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toMarkdownBytes(null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toDocument(null));
     }
 
     private static byte[] emptyDocxPackage() throws IOException {

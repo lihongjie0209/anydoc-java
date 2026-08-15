@@ -75,6 +75,23 @@ class PlatformTest {
     }
 
     @Test
+    void unknownClassifierOverrideFails() {
+        String previous = System.getProperty("anydoc.native.classifier");
+        try {
+            System.setProperty("anydoc.native.classifier", "plan9-vax");
+            UnsatisfiedLinkError error = org.junit.jupiter.api.Assertions.assertThrows(
+                    UnsatisfiedLinkError.class, Platform::detect);
+            assertTrue(error.getMessage().contains("plan9-vax"), error.getMessage());
+        } finally {
+            if (previous == null) {
+                System.clearProperty("anydoc.native.classifier");
+            } else {
+                System.setProperty("anydoc.native.classifier", previous);
+            }
+        }
+    }
+
+    @Test
     void cargoOutputIsOnTheSearchPath() {
         Platform linux = Platform.fromClassifier("linux-x86_64").orElseThrow();
         assertTrue(
