@@ -51,7 +51,7 @@
         <skipNative>false</skipNative>
         <!-- Fallback when -Drevision is not passed (local test / untagged CI).
              make package / make publish always inject the git tag. -->
-        <revision>0.1.9</revision>
+        <revision>0.1.10</revision>
     </properties>
 
     <dependencies>

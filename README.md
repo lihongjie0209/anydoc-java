@@ -16,11 +16,11 @@ The public model is Java 8-shaped: `Block`, `Inline`, `CellSlot`, `LinkTarget`, 
 
 ## Install
 
-Published on [Maven Central](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc/0.1.9). No extra `<repository>` is required.
+Published on [Maven Central](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc/0.1.10). No extra `<repository>` is required.
 
-Coordinates: `io.github.lihongjie0209:anydoc:0.1.9`
+Coordinates: `io.github.lihongjie0209:anydoc:0.1.10`
 
-The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each and are on the [GitHub Release](https://github.com/lihongjie0209/anydoc-java/releases/tag/v0.1.9).
+The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each and are on the [GitHub Release](https://github.com/lihongjie0209/anydoc-java/releases/tag/v0.1.10).
 
 Maven:
 
@@ -28,7 +28,7 @@ Maven:
 <dependency>
   <groupId>io.github.lihongjie0209</groupId>
   <artifactId>anydoc</artifactId>
-  <version>0.1.9</version>
+  <version>0.1.10</version>
   <!-- optional: linux-x86_64, linux-aarch64, linux-x86_64-musl,
        linux-aarch64-musl, macos-x86_64, macos-aarch64, windows-x86_64 -->
   <!-- <classifier>linux-x86_64</classifier> -->
@@ -39,7 +39,7 @@ Gradle:
 
 ```kotlin
 dependencies {
-    implementation("io.github.lihongjie0209:anydoc:0.1.9")
+    implementation("io.github.lihongjie0209:anydoc:0.1.10")
 }
 ```
 
@@ -272,7 +272,7 @@ mvn -DskipNative -DskipTests package
 scripts/package-jars.sh
 ```
 
-That produces `target/anydoc-0.1.9.jar` (fat) and `target/anydoc-0.1.9-<classifier>.jar`.
+That produces `target/anydoc-0.1.10.jar` (fat) and `target/anydoc-0.1.10-<classifier>.jar`.
 
 A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR to [Maven Central](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc), copies the fat JAR and each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
 
