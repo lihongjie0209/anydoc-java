@@ -160,7 +160,10 @@ jobs:
         run: |
           set -eu
           version=$(sed -n 's/^version=//p' target/maven-coordinates.properties)
-          mvn -B -DskipNative -DskipTests deploy --settings .github/maven-settings.xml
+          # GitHub Packages rejects re-uploading the same POM/version (409).
+          if ! mvn -B -DskipNative -DskipTests deploy --settings .github/maven-settings.xml; then
+            echo "main deploy failed; continuing with classifiers if the version is already published"
+          fi
           for jar in target/anydoc-${version}-*.jar; do
             [ -f "$jar" ] || continue
             classifier=${jar#target/anydoc-${version}-}
@@ -173,9 +176,9 @@ jobs:
               -Dpackaging=jar \
               -Dclassifier="$classifier" \
               -Dfile="$jar" \
+              -DgeneratePom=false \
               -DrepositoryId=github \
-              -Durl=https://maven.pkg.github.com/lihongjie0209/anydoc-java \
-              -DpomFile=pom.xml
+              -Durl=https://maven.pkg.github.com/lihongjie0209/anydoc-java
           done
 
       - name: Attach JARs to GitHub Release
