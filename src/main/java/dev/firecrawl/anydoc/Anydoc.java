@@ -3,6 +3,7 @@ package dev.firecrawl.anydoc;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -10,10 +11,10 @@ import java.util.Optional;
  * Convert documents to GitHub-Flavored Markdown.
  *
  * <pre>{@code
- * String markdown = Anydoc.toMarkdown(Path.of("report.docx"));
+ * String markdown = Anydoc.toMarkdown(Paths.get("report.docx"));
  * String fromBytes = Anydoc.toMarkdownBytes(bytes);
  * String fromCsv = Anydoc.toMarkdownBytes(bytes, Format.CSV);
- * Document document = Anydoc.toDocument(Path.of("report.docx"));
+ * Document document = Anydoc.toDocument(Paths.get("report.docx"));
  * }</pre>
  */
 public final class Anydoc {
@@ -83,16 +84,16 @@ public final class Anydoc {
      */
     public static Document toDocument(String path) throws IOException {
         Objects.requireNonNull(path, "path");
-        byte[] data = Files.readAllBytes(Path.of(path));
-        Format format =
-                formatFromBytes(data)
-                        .or(() -> formatFromPath(path))
-                        .orElseThrow(
-                                () ->
-                                        new UnsupportedException(
-                                                "unsupported input: unrecognized file content and extension: "
-                                                        + path));
-        return toDocument(data, format);
+        byte[] data = Files.readAllBytes(Paths.get(path));
+        Optional<Format> detected = formatFromBytes(data);
+        if (!detected.isPresent()) {
+            detected = formatFromPath(path);
+        }
+        if (!detected.isPresent()) {
+            throw new UnsupportedException(
+                    "unsupported input: unrecognized file content and extension: " + path);
+        }
+        return toDocument(data, detected.get());
     }
 
     /**

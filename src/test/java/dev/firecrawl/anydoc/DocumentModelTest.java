@@ -8,9 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,12 +28,12 @@ class DocumentModelTest {
                         .filter(Block.Heading.class::isInstance)
                         .map(Block.Heading.class::cast)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertEquals("heading", heading.kind());
         assertTrue(heading.level() >= 1 && heading.level() <= 6);
-        Inline.Text text = assertInstanceOf(Inline.Text.class, heading.content().getFirst());
+        Inline.Text text = assertInstanceOf(Inline.Text.class, heading.content().get(0));
         assertEquals("text", text.kind());
-        assertFalse(text.text().isBlank());
+        assertFalse(text.text().trim().isEmpty());
         assertInstanceOf(Style.class, text.style());
     }
 
@@ -41,7 +45,7 @@ class DocumentModelTest {
                         .filter(Block.TableBlock.class::isInstance)
                         .map(Block.TableBlock.class::cast)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertEquals("table", tableBlock.kind());
         Table table = tableBlock.table();
         assertEquals("data", table.kind().wireName());
@@ -57,7 +61,7 @@ class DocumentModelTest {
                         .filter(CellSlot.Covered.class::isInstance)
                         .map(CellSlot.Covered.class::cast)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertEquals("covered", covered.kind());
         assertTrue(covered.originRow() >= 0);
         assertTrue(covered.originCol() >= 0);
@@ -71,7 +75,7 @@ class DocumentModelTest {
                         .filter(Block.ListBlock.class::isInstance)
                         .map(Block.ListBlock.class::cast)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertEquals("list", listBlock.kind());
         DocList list = listBlock.list();
         assertEquals(MarkerKind.DECIMAL, list.marker());
@@ -92,7 +96,7 @@ class DocumentModelTest {
                 Fixtures.allInlines(document)
                         .filter(Inline.Link.class::isInstance)
                         .map(Inline.Link.class::cast)
-                        .toList();
+                        .collect(Collectors.toList());
         assertFalse(links.isEmpty());
         assertTrue(
                 links.stream().anyMatch(link -> link.target() instanceof LinkTarget.External),
@@ -104,7 +108,7 @@ class DocumentModelTest {
                 links.stream()
                         .filter(link -> link.target() instanceof LinkTarget.External)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertEquals("link", external.kind());
         assertEquals("external", external.target().kind());
         assertTrue(external.target().value().contains("example.com"), external.target().value());
@@ -119,8 +123,9 @@ class DocumentModelTest {
                 Fixtures.allInlines(document)
                         .anyMatch(
                                 inline ->
-                                        inline instanceof Inline.Link link
-                                                && link.target() instanceof LinkTarget.Anchor));
+                                        inline instanceof Inline.Link
+                                                && ((Inline.Link) inline).target()
+                                                        instanceof LinkTarget.Anchor));
     }
 
     @Test
@@ -130,9 +135,9 @@ class DocumentModelTest {
                 document.assets().stream()
                         .filter(asset -> asset.mediaType().equals("image/png"))
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertTrue(image.data().length > 0);
-        assertFalse(image.originPart().isBlank());
+        assertFalse(image.originPart().trim().isEmpty());
         assertEquals(image.id(), document.assets().indexOf(image));
 
         byte[] first = image.data();
@@ -184,7 +189,7 @@ class DocumentModelTest {
     void pathToDocumentRejectsUnrecognizedFiles() throws IOException {
         Path unknown = java.nio.file.Files.createTempFile("anydoc-unrecognized-", ".unknown");
         try {
-            java.nio.file.Files.writeString(unknown, "not a document");
+            Files.write(unknown, "not a document".getBytes(StandardCharsets.UTF_8));
             UnsupportedException error =
                     assertThrows(UnsupportedException.class, () -> Anydoc.toDocument(unknown));
             assertTrue(
@@ -203,7 +208,7 @@ class DocumentModelTest {
                         .filter(Block.ListBlock.class::isInstance)
                         .map(Block.ListBlock.class::cast)
                         .findFirst()
-                        .orElseThrow()
+                        .orElseThrow(NoSuchElementException::new)
                         .list();
         assertTrue(list.ordered());
         assertTrue(list.marker().ordered());
@@ -214,15 +219,15 @@ class DocumentModelTest {
                         .filter(Block.TableBlock.class::isInstance)
                         .map(Block.TableBlock.class::cast)
                         .findFirst()
-                        .orElseThrow()
+                        .orElseThrow(NoSuchElementException::new)
                         .table();
         assertFalse(table.isSingleCell());
         boolean sawEmpty = false;
         boolean sawNonEmpty = false;
         for (List<CellSlot> row : table.grid()) {
             for (CellSlot slot : row) {
-                if (slot instanceof CellSlot.Origin origin) {
-                    if (origin.cell().isEmpty()) {
+                if (slot instanceof CellSlot.Origin) {
+                    if (((CellSlot.Origin) slot).cell().isEmpty()) {
                         sawEmpty = true;
                     } else {
                         sawNonEmpty = true;

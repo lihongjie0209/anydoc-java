@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -12,25 +14,28 @@ class ModelHelpersTest {
 
     @Test
     void toPlainTextKeepsLinkTextAndImageAltAndDropsMarkers() {
-        assertEquals("hi", Inlines.toPlainText(List.of(new Inline.Text("hi", Style.PLAIN))));
+        assertEquals("hi", Inlines.toPlainText(Collections.singletonList(new Inline.Text("hi", Style.PLAIN))));
         assertEquals(
                 "click here",
                 Inlines.toPlainText(
-                        List.of(
+                        Collections.singletonList(
                                 new Inline.Link(
-                                        List.of(new Inline.Text("click here", Style.PLAIN)),
+                                        Collections.singletonList(new Inline.Text("click here", Style.PLAIN)),
                                         new LinkTarget.External("https://example.com")))));
-        assertEquals("logo", Inlines.toPlainText(List.of(new Inline.Image("logo", new ImageSource.Unavailable()))));
-        assertEquals("\n", Inlines.toPlainText(List.of(new Inline.LineBreak())));
-        assertEquals("", Inlines.toPlainText(List.of(new Inline.Anchor("mark"))));
-        assertEquals("", Inlines.toPlainText(List.of(new Inline.NoteRef("n1"))));
+        assertEquals(
+                "logo",
+                Inlines.toPlainText(
+                        Collections.singletonList(new Inline.Image("logo", new ImageSource.Unavailable()))));
+        assertEquals("\n", Inlines.toPlainText(Collections.singletonList(new Inline.LineBreak())));
+        assertEquals("", Inlines.toPlainText(Collections.singletonList(new Inline.Anchor("mark"))));
+        assertEquals("", Inlines.toPlainText(Collections.singletonList(new Inline.NoteRef("n1"))));
         assertEquals(
                 "ab\nc",
                 Inlines.toPlainText(
-                        List.of(
+                        Arrays.asList(
                                 new Inline.Text("a", Style.PLAIN),
                                 new Inline.Link(
-                                        List.of(new Inline.Text("b", Style.PLAIN)),
+                                        Collections.singletonList(new Inline.Text("b", Style.PLAIN)),
                                         new LinkTarget.Relative("next.md")),
                                 new Inline.LineBreak(),
                                 new Inline.Anchor("x"),
@@ -42,14 +47,16 @@ class ModelHelpersTest {
     void areEmptyTreatsWhitespaceAnchorsAndEmptyLinksAsEmpty() {
         assertTrue(
                 Inlines.areEmpty(
-                        List.of(
+                        Arrays.asList(
                                 new Inline.Text("  \t", Style.PLAIN),
-                                new Inline.Link(List.of(), new LinkTarget.External("")),
+                                new Inline.Link(Collections.<Inline>emptyList(), new LinkTarget.External("")),
                                 new Inline.Anchor("id"),
                                 new Inline.LineBreak())));
-        assertFalse(Inlines.areEmpty(List.of(new Inline.Image("", new ImageSource.Unavailable()))));
-        assertFalse(Inlines.areEmpty(List.of(new Inline.NoteRef("n1"))));
-        assertFalse(Inlines.areEmpty(List.of(new Inline.Text("x", Style.PLAIN))));
+        assertFalse(
+                Inlines.areEmpty(
+                        Collections.singletonList(new Inline.Image("", new ImageSource.Unavailable()))));
+        assertFalse(Inlines.areEmpty(Collections.singletonList(new Inline.NoteRef("n1"))));
+        assertFalse(Inlines.areEmpty(Collections.singletonList(new Inline.Text("x", Style.PLAIN))));
     }
 
     @Test
@@ -72,19 +79,25 @@ class ModelHelpersTest {
 
     @Test
     void listOrderedFollowsTheMarker() {
-        assertTrue(new DocList(MarkerKind.DECIMAL, 1, List.of()).ordered());
-        assertFalse(new DocList(MarkerKind.BULLET, 1, List.of()).ordered());
+        assertTrue(new DocList(MarkerKind.DECIMAL, 1, Collections.<ListItem>emptyList()).ordered());
+        assertFalse(new DocList(MarkerKind.BULLET, 1, Collections.<ListItem>emptyList()).ordered());
     }
 
     @Test
     void cellEmptinessOnlyLooksAtParagraphs() {
-        Cell blank = new Cell(List.of(new Block.Paragraph(List.of(new Inline.Text("  ", Style.PLAIN)))), 1, 1);
+        Cell blank =
+                new Cell(
+                        Collections.singletonList(
+                                new Block.Paragraph(
+                                        Collections.singletonList(new Inline.Text("  ", Style.PLAIN)))),
+                        1,
+                        1);
         assertTrue(blank.isEmpty());
         Cell withList =
                 new Cell(
-                        List.of(
+                        Collections.singletonList(
                                 new Block.ListBlock(
-                                        new DocList(MarkerKind.BULLET, 1, List.of()))),
+                                        new DocList(MarkerKind.BULLET, 1, Collections.<ListItem>emptyList()))),
                         1,
                         1);
         assertFalse(withList.isEmpty());
@@ -92,12 +105,18 @@ class ModelHelpersTest {
 
     @Test
     void tableIsSingleCellOnlyForALoneOrigin() {
-        Cell cell = new Cell(List.of(), 1, 1);
-        Table single = new Table(List.of(List.of(new CellSlot.Origin(cell))), 0, TableKind.DATA);
+        Cell cell = new Cell(Collections.<Block>emptyList(), 1, 1);
+        Table single =
+                new Table(
+                        Collections.singletonList(
+                                Collections.<CellSlot>singletonList(new CellSlot.Origin(cell))),
+                        0,
+                        TableKind.DATA);
         assertTrue(single.isSingleCell());
         Table coveredPad =
                 new Table(
-                        List.of(List.of(new CellSlot.Origin(cell), new CellSlot.Covered(0, 0))),
+                        Collections.singletonList(
+                                Arrays.asList(new CellSlot.Origin(cell), new CellSlot.Covered(0, 0))),
                         0,
                         TableKind.DATA);
         assertFalse(coveredPad.isSingleCell());

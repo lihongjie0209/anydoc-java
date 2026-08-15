@@ -1,4 +1,4 @@
-//! Java 21 JNI bindings for anydoc.
+//! Java 8 JNI bindings for anydoc.
 
 use std::path::Path;
 

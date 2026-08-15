@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -29,7 +31,14 @@ class AnydocTest {
     @Test
     void toMarkdownDetectsTheFormatFromTheFileContent() throws IOException {
         String markdown = Anydoc.toMarkdown(OUTLINE);
-        assertTrue(markdown.lines().anyMatch(line -> line.startsWith("# ")), markdown);
+        boolean heading = false;
+        for (String line : markdown.split("\n")) {
+            if (line.startsWith("# ")) {
+                heading = true;
+                break;
+            }
+        }
+        assertTrue(heading, markdown);
     }
 
     @Test
@@ -61,9 +70,9 @@ class AnydocTest {
                         .filter(Block.Heading.class::isInstance)
                         .map(Block.Heading.class::cast)
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertTrue(heading.level() >= 1 && heading.level() <= 6);
-        Inline.Text first = assertInstanceOf(Inline.Text.class, heading.content().getFirst());
+        Inline.Text first = assertInstanceOf(Inline.Text.class, heading.content().get(0));
         assertFalse(first.text().isEmpty());
         assertEquals("text", first.kind());
         assertInstanceOf(Boolean.class, first.style().bold());
@@ -76,7 +85,7 @@ class AnydocTest {
                 document.assets().stream()
                         .filter(asset -> asset.mediaType().equals("image/png"))
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(NoSuchElementException::new);
         assertTrue(image.data().length > 0);
         assertEquals(image.id(), document.assets().indexOf(image));
     }
@@ -125,7 +134,7 @@ class AnydocTest {
     @Test
     void unreadableFilesRaiseIoException() {
         assertThrows(NoSuchFileException.class, () -> Anydoc.toMarkdown("no-such-file.docx"));
-        assertThrows(NoSuchFileException.class, () -> Anydoc.toMarkdown(Path.of("no-such-file.docx")));
+        assertThrows(NoSuchFileException.class, () -> Anydoc.toMarkdown(Paths.get("no-such-file.docx")));
     }
 
     @Test
@@ -167,7 +176,7 @@ class AnydocTest {
                                 Anydoc.toMarkdownBytes(
                                         Fixtures.bytes("abuse", "imagebomb--errors.docx"), Format.DOCX));
         assertEquals("resourceLimit", error.code());
-        assertFalse(error.limit().isBlank());
+        assertFalse(error.limit().trim().isEmpty());
     }
 
     @Test

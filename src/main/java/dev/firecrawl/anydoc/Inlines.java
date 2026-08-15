@@ -28,29 +28,45 @@ public final class Inlines {
      */
     public static boolean areEmpty(List<Inline> inlines) {
         Objects.requireNonNull(inlines, "inlines");
-        return inlines.stream().allMatch(Inlines::isEmpty);
+        for (Inline inline : inlines) {
+            if (!isEmpty(inline)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean isEmpty(Inline inline) {
-        return switch (inline) {
-            case Inline.Text text -> text.text().trim().isEmpty();
-            case Inline.Link link -> link.target().isEmpty() && areEmpty(link.content());
-            case Inline.Image ignored -> false;
-            case Inline.NoteRef ignored -> false;
-            case Inline.Anchor ignored -> true;
-            case Inline.LineBreak ignored -> true;
-        };
+        if (inline instanceof Inline.Text) {
+            return ((Inline.Text) inline).text().trim().isEmpty();
+        }
+        if (inline instanceof Inline.Link) {
+            Inline.Link link = (Inline.Link) inline;
+            return link.target().isEmpty() && areEmpty(link.content());
+        }
+        if (inline instanceof Inline.Image || inline instanceof Inline.NoteRef) {
+            return false;
+        }
+        if (inline instanceof Inline.Anchor || inline instanceof Inline.LineBreak) {
+            return true;
+        }
+        throw new IllegalArgumentException("unknown inline: " + inline);
     }
 
     private static void collectPlainText(List<Inline> inlines, StringBuilder out) {
         for (Inline inline : inlines) {
-            switch (inline) {
-                case Inline.Text text -> out.append(text.text());
-                case Inline.Link link -> collectPlainText(link.content(), out);
-                case Inline.Image image -> out.append(image.alt());
-                case Inline.Anchor ignored -> {}
-                case Inline.NoteRef ignored -> {}
-                case Inline.LineBreak ignored -> out.append('\n');
+            if (inline instanceof Inline.Text) {
+                out.append(((Inline.Text) inline).text());
+            } else if (inline instanceof Inline.Link) {
+                collectPlainText(((Inline.Link) inline).content(), out);
+            } else if (inline instanceof Inline.Image) {
+                out.append(((Inline.Image) inline).alt());
+            } else if (inline instanceof Inline.LineBreak) {
+                out.append('\n');
+            } else if (inline instanceof Inline.Anchor || inline instanceof Inline.NoteRef) {
+                // markers contribute nothing
+            } else {
+                throw new IllegalArgumentException("unknown inline: " + inline);
             }
         }
     }

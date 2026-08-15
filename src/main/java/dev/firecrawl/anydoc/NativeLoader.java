@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +36,8 @@ final class NativeLoader {
 
     private static void doLoad() {
         String explicit = System.getProperty("anydoc.native.path");
-        if (explicit != null && !explicit.isBlank()) {
-            System.load(Path.of(explicit).toAbsolutePath().toString());
+        if (explicit != null && !Strings.isBlank(explicit)) {
+            System.load(Paths.get(explicit).toAbsolutePath().toString());
             return;
         }
 
@@ -81,8 +82,8 @@ final class NativeLoader {
 
     static List<Path> fileCandidates(Platform platform) {
         String fileName = platform.libraryFileName();
-        Path cwd = Path.of(System.getProperty("user.dir", "."));
-        List<Path> roots = new ArrayList<>();
+        Path cwd = Paths.get(System.getProperty("user.dir", "."));
+        List<Path> roots = new ArrayList<Path>();
         roots.add(cwd);
         roots.add(cwd.resolve("native"));
         Path parent = cwd.getParent();
@@ -91,8 +92,8 @@ final class NativeLoader {
             roots.add(parent.resolve("native"));
         }
         String dir = System.getProperty("anydoc.native.dir");
-        if (dir != null && !dir.isBlank()) {
-            roots.add(Path.of(dir));
+        if (dir != null && !Strings.isBlank(dir)) {
+            roots.add(Paths.get(dir));
         }
         List<Path> candidates = new ArrayList<>();
         for (Path root : roots) {

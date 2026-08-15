@@ -37,14 +37,22 @@ public enum MarkerKind {
 
     /** The bare ordinal text for {@code n} without punctuation: {@code 3}, {@code c}, {@code iv}. */
     public String ordinal(long n) {
-        return switch (this) {
-            case BULLET -> "-";
-            case DECIMAL -> Long.toString(n);
-            case LOWER_ALPHA -> alpha(n);
-            case UPPER_ALPHA -> alpha(n).toUpperCase();
-            case LOWER_ROMAN -> roman(n);
-            case UPPER_ROMAN -> roman(n).toUpperCase();
-        };
+        switch (this) {
+            case BULLET:
+                return "-";
+            case DECIMAL:
+                return Long.toString(n);
+            case LOWER_ALPHA:
+                return alpha(n);
+            case UPPER_ALPHA:
+                return alpha(n).toUpperCase();
+            case LOWER_ROMAN:
+                return roman(n);
+            case UPPER_ROMAN:
+                return roman(n).toUpperCase();
+            default:
+                throw new IllegalStateException(name());
+        }
     }
 
     /** 1 → {@code a}, 26 → {@code z}, 27 → {@code aa} (bijective base 26). */

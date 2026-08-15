@@ -22,13 +22,13 @@ class PlatformTest {
                 Platform.fromClassifier("linux-aarch64-musl").map(Platform::rustTarget));
         assertEquals(
                 "/native/linux-x86_64/libanydoc_java.so",
-                Platform.fromClassifier("linux-x86_64").orElseThrow().resourcePath());
+                Platform.fromClassifier("linux-x86_64").get().resourcePath());
         assertEquals(
                 "anydoc_java.dll",
-                Platform.fromClassifier("windows-x86_64").orElseThrow().libraryFileName());
+                Platform.fromClassifier("windows-x86_64").get().libraryFileName());
         assertEquals(
                 "libanydoc_java.dylib",
-                Platform.fromClassifier("macos-aarch64").orElseThrow().libraryFileName());
+                Platform.fromClassifier("macos-aarch64").get().libraryFileName());
     }
 
     @Test
@@ -93,7 +93,7 @@ class PlatformTest {
 
     @Test
     void cargoOutputIsOnTheSearchPath() {
-        Platform linux = Platform.fromClassifier("linux-x86_64").orElseThrow();
+        Platform linux = Platform.fromClassifier("linux-x86_64").get();
         assertTrue(
                 NativeLoader.fileCandidates(linux).stream()
                         .map(Path::toString)

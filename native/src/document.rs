@@ -1,4 +1,4 @@
-//! Convert the Rust document model into Java records.
+//! Convert the Rust document model into Java objects.
 
 use jni::Env;
 use jni::objects::{JObject, JString, JValue};

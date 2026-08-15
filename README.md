@@ -3,13 +3,19 @@
 [![CI](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml/badge.svg)](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF files into clean GitHub-Flavored Markdown, or into a typed document model. Java 21 bindings for the [anydoc](https://github.com/firecrawl/anydoc) Rust crate.
+Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF files into clean GitHub-Flavored Markdown, or into a typed document model. Java 8 bindings for the [anydoc](https://github.com/firecrawl/anydoc) Rust crate.
 
-Requires **Java 21**. Linux GNU builds are linked with [Zig](https://ziglang.org) against **glibc 2.17** (CentOS 7 / manylinux2014).
+Linux GNU builds are linked with [Zig](https://ziglang.org) against **glibc 2.17** (CentOS 7 / manylinux2014).
+
+## Requirements
+
+Runs on **Java 8 and newer** (11, 17, 21 included). The published JAR is compiled with `-source 1.8` / `-target 1.8`.
+
+The public model is Java 8-shaped: `Block`, `Inline`, `CellSlot`, `LinkTarget`, and `ImageSource` are interfaces with nested implementation classes. Inspect them with `instanceof` and a cast — there are no records, sealed types, or pattern-matching `switch` in the API.
 
 ## Install (GitHub Packages)
 
-Coordinates: `io.github.lihongjie0209:anydoc:0.1.8`
+Coordinates: `io.github.lihongjie0209:anydoc:0.1.9`
 
 The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each.
 
@@ -19,7 +25,7 @@ Maven:
 <dependency>
   <groupId>io.github.lihongjie0209</groupId>
   <artifactId>anydoc</artifactId>
-  <version>0.1.8</version>
+  <version>0.1.9</version>
   <!-- optional: linux-x86_64, linux-aarch64, linux-x86_64-musl,
        linux-aarch64-musl, macos-x86_64, macos-aarch64, windows-x86_64 -->
   <!-- <classifier>linux-x86_64</classifier> -->
@@ -41,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.lihongjie0209:anydoc:0.1.8")
+    implementation("io.github.lihongjie0209:anydoc:0.1.9")
 }
 ```
 
@@ -58,10 +64,10 @@ import dev.firecrawl.anydoc.Anydoc;
 import dev.firecrawl.anydoc.Format;
 
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
-String fromFile = Anydoc.toMarkdown(Path.of("report.docx"));
-String fromBytes = Anydoc.toMarkdownBytes(Files.readAllBytes(Path.of("report.docx")));
+String fromFile = Anydoc.toMarkdown(Paths.get("report.docx"));
+String fromBytes = Anydoc.toMarkdownBytes(Files.readAllBytes(Paths.get("report.docx")));
 String fromCsv = Anydoc.toMarkdownBytes(csvBytes, Format.CSV);
 ```
 
@@ -75,24 +81,27 @@ import dev.firecrawl.anydoc.Block;
 import dev.firecrawl.anydoc.Document;
 import dev.firecrawl.anydoc.Inlines;
 
-Document document = Anydoc.toDocument(Path.of("report.docx"));
+import java.nio.file.Paths;
+
+Document document = Anydoc.toDocument(Paths.get("report.docx"));
 
 for (Block block : document.blocks()) {
-    switch (block) {
-        case Block.Heading heading ->
-                System.out.println(heading.level() + " " + Inlines.toPlainText(heading.content()));
-        case Block.Paragraph paragraph ->
-                System.out.println(Inlines.toPlainText(paragraph.content()));
-        case Block.ListBlock list ->
-                System.out.println("list items: " + list.list().items().size());
-        case Block.TableBlock table ->
-                System.out.println("rows: " + table.table().grid().size());
-        case Block.BlockQuote quote ->
-                System.out.println("quote blocks: " + quote.blocks().size());
-        case Block.CodeBlock code ->
-                System.out.println(code.lang() + "\n" + code.text());
-        case Block.Rule ignored ->
-                System.out.println("---");
+    if (block instanceof Block.Heading) {
+        Block.Heading heading = (Block.Heading) block;
+        System.out.println(heading.level() + " " + Inlines.toPlainText(heading.content()));
+    } else if (block instanceof Block.Paragraph) {
+        System.out.println(Inlines.toPlainText(((Block.Paragraph) block).content()));
+    } else if (block instanceof Block.ListBlock) {
+        System.out.println("list items: " + ((Block.ListBlock) block).list().items().size());
+    } else if (block instanceof Block.TableBlock) {
+        System.out.println("rows: " + ((Block.TableBlock) block).table().grid().size());
+    } else if (block instanceof Block.BlockQuote) {
+        System.out.println("quote blocks: " + ((Block.BlockQuote) block).blocks().size());
+    } else if (block instanceof Block.CodeBlock) {
+        Block.CodeBlock code = (Block.CodeBlock) block;
+        System.out.println(code.lang() + "\n" + code.text());
+    } else if (block instanceof Block.Rule) {
+        System.out.println("---");
     }
 }
 ```
@@ -120,7 +129,7 @@ The JNI library is extracted from `/native/{classifier}/` inside the JAR on firs
 
 ## Core API
 
-The binding is a thin, typed view of the crate. Sealed interfaces (`Block`, `Inline`, `CellSlot`, `LinkTarget`, `ImageSource`) are meant to be switched on.
+The binding is a thin, typed view of the crate. Variant types (`Block`, `Inline`, `CellSlot`, `LinkTarget`, `ImageSource`) are interfaces with nested implementation classes, meant to be inspected with `instanceof`.
 
 ### `Anydoc`
 
@@ -271,7 +280,7 @@ mvn -DskipNative -DskipTests package
 scripts/package-jars.sh
 ```
 
-That produces `target/anydoc-0.1.8.jar` (fat) and `target/anydoc-0.1.8-<classifier>.jar`.
+That produces `target/anydoc-0.1.9.jar` (fat) and `target/anydoc-0.1.9-<classifier>.jar`.
 
 A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR plus each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
 

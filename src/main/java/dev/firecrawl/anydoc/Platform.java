@@ -6,10 +6,14 @@ import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A supported native target: OS, CPU, and C library. Classifiers match the directory under {@code
@@ -29,16 +33,21 @@ public final class Platform {
     public static final String GLIBC_MIN = "2.17";
 
     private static final List<Platform> ALL =
-            List.of(
-                    new Platform(LINUX_X86_64, "x86_64-unknown-linux-gnu", "linux", "x86_64", "gnu"),
-                    new Platform(LINUX_AARCH64, "aarch64-unknown-linux-gnu", "linux", "aarch64", "gnu"),
-                    new Platform(
-                            LINUX_X86_64_MUSL, "x86_64-unknown-linux-musl", "linux", "x86_64", "musl"),
-                    new Platform(
-                            LINUX_AARCH64_MUSL, "aarch64-unknown-linux-musl", "linux", "aarch64", "musl"),
-                    new Platform(MACOS_X86_64, "x86_64-apple-darwin", "macos", "x86_64", ""),
-                    new Platform(MACOS_AARCH64, "aarch64-apple-darwin", "macos", "aarch64", ""),
-                    new Platform(WINDOWS_X86_64, "x86_64-pc-windows-msvc", "windows", "x86_64", ""));
+            Collections.unmodifiableList(
+                    Arrays.asList(
+                            new Platform(LINUX_X86_64, "x86_64-unknown-linux-gnu", "linux", "x86_64", "gnu"),
+                            new Platform(LINUX_AARCH64, "aarch64-unknown-linux-gnu", "linux", "aarch64", "gnu"),
+                            new Platform(
+                                    LINUX_X86_64_MUSL, "x86_64-unknown-linux-musl", "linux", "x86_64", "musl"),
+                            new Platform(
+                                    LINUX_AARCH64_MUSL,
+                                    "aarch64-unknown-linux-musl",
+                                    "linux",
+                                    "aarch64",
+                                    "musl"),
+                            new Platform(MACOS_X86_64, "x86_64-apple-darwin", "macos", "x86_64", ""),
+                            new Platform(MACOS_AARCH64, "aarch64-apple-darwin", "macos", "aarch64", ""),
+                            new Platform(WINDOWS_X86_64, "x86_64-pc-windows-msvc", "windows", "x86_64", "")));
 
     private final String classifier;
     private final String rustTarget;
@@ -81,11 +90,13 @@ public final class Platform {
 
     /** File name of the JNI library on this platform. */
     public String libraryFileName() {
-        return switch (os) {
-            case "windows" -> "anydoc_java.dll";
-            case "macos" -> "libanydoc_java.dylib";
-            default -> "libanydoc_java.so";
-        };
+        if ("windows".equals(os)) {
+            return "anydoc_java.dll";
+        }
+        if ("macos".equals(os)) {
+            return "libanydoc_java.dylib";
+        }
+        return "libanydoc_java.so";
     }
 
     /** Classpath resource that holds the JNI library, e.g. {@code /native/linux-x86_64/libanydoc_java.so}. */
@@ -98,7 +109,7 @@ public final class Platform {
     }
 
     public static Optional<Platform> fromClassifier(String classifier) {
-        if (classifier == null || classifier.isBlank()) {
+        if (Strings.isBlank(classifier)) {
             return Optional.empty();
         }
         return ALL.stream().filter(p -> p.classifier.equals(classifier)).findFirst();
@@ -110,7 +121,7 @@ public final class Platform {
      */
     public static Platform detect() {
         String override = System.getProperty("anydoc.native.classifier");
-        if (override != null && !override.isBlank()) {
+        if (override != null && !Strings.isBlank(override)) {
             return fromClassifier(override)
                     .orElseThrow(
                             () ->
@@ -143,7 +154,7 @@ public final class Platform {
     }
 
     static String classifiers() {
-        return String.join(", ", ALL.stream().map(Platform::classifier).toList());
+        return ALL.stream().map(Platform::classifier).collect(Collectors.joining(", "));
     }
 
     static String currentOs() {
@@ -162,11 +173,13 @@ public final class Platform {
 
     static String currentArch() {
         String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
-        return switch (arch) {
-            case "amd64", "x86_64", "x64" -> "x86_64";
-            case "aarch64", "arm64" -> "aarch64";
-            default -> arch;
-        };
+        if ("amd64".equals(arch) || "x86_64".equals(arch) || "x64".equals(arch)) {
+            return "x86_64";
+        }
+        if ("aarch64".equals(arch) || "arm64".equals(arch)) {
+            return "aarch64";
+        }
+        return arch;
     }
 
     /**
@@ -179,11 +192,11 @@ public final class Platform {
             return interp.contains("musl");
         }
         String arch = currentArch();
-        return Files.isRegularFile(Path.of("/lib/ld-musl-" + arch + ".so.1"));
+        return Files.isRegularFile(Paths.get("/lib/ld-musl-" + arch + ".so.1"));
     }
 
     static String linuxInterpreter() {
-        Path exe = Path.of("/proc/self/exe");
+        Path exe = Paths.get("/proc/self/exe");
         if (!Files.isRegularFile(exe) && !Files.isSymbolicLink(exe)) {
             return null;
         }
@@ -246,7 +259,7 @@ public final class Platform {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof Platform p && classifier.equals(p.classifier);
+        return other instanceof Platform && classifier.equals(((Platform) other).classifier);
     }
 
     @Override

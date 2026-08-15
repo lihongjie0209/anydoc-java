@@ -38,9 +38,9 @@ class FormatCoverageTest {
 
         String fromPath = Anydoc.toMarkdown(path);
         String fromBytes = Anydoc.toMarkdownBytes(data, format);
-        assertFalse(fromPath.isBlank(), fromPath);
-        assertFalse(fromBytes.isBlank(), fromBytes);
-        if (expected != null && !expected.isBlank()) {
+        assertFalse(fromPath.trim().isEmpty(), fromPath);
+        assertFalse(fromBytes.trim().isEmpty(), fromBytes);
+        if (expected != null && !expected.trim().isEmpty()) {
             assertTrue(fromPath.contains(expected), fromPath);
             assertTrue(fromBytes.contains(expected), fromBytes);
         }
@@ -60,7 +60,7 @@ class FormatCoverageTest {
     void csvVariantsNeedAnExplicitFormat(String fixture) throws IOException {
         String[] parts = fixture.split("/", 2);
         byte[] data = Fixtures.bytes(parts[0], parts[1]);
-        assertTrue(Anydoc.formatFromBytes(data).isEmpty());
+        assertFalse(Anydoc.formatFromBytes(data).isPresent());
         String markdown = Anydoc.toMarkdownBytes(data, Format.CSV);
         assertTrue(markdown.contains("|"), markdown);
     }

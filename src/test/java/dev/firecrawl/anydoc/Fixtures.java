@@ -3,12 +3,13 @@ package dev.firecrawl.anydoc;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
 final class Fixtures {
 
-    static final Path ROOT = Path.of(System.getProperty("anydoc.fixtures", "../anydoc/tests/fixtures"));
+    static final Path ROOT = Paths.get(System.getProperty("anydoc.fixtures", "../anydoc/tests/fixtures"));
 
     private Fixtures() {}
 
@@ -29,10 +30,11 @@ final class Fixtures {
     }
 
     static Stream<Inline> inlines(Inline inline) {
-        return switch (inline) {
-            case Inline.Link link -> Stream.concat(Stream.of(link), inlines(link.content()));
-            default -> Stream.of(inline);
-        };
+        if (inline instanceof Inline.Link) {
+            Inline.Link link = (Inline.Link) inline;
+            return Stream.concat(Stream.of(link), inlines(link.content()));
+        }
+        return Stream.of(inline);
     }
 
     static Stream<Block> walk(List<Block> blocks) {
@@ -40,40 +42,51 @@ final class Fixtures {
     }
 
     static Stream<Block> walk(Block block) {
-        Stream<Block> nested =
-                switch (block) {
-                    case Block.ListBlock list ->
-                            list.list().items().stream().flatMap(item -> walk(item.blocks()));
-                    case Block.TableBlock table ->
-                            table.table().grid().stream()
-                                    .flatMap(List::stream)
-                                    .flatMap(
-                                            slot ->
-                                                    slot instanceof CellSlot.Origin origin
-                                                            ? walk(origin.cell().blocks())
-                                                            : Stream.empty());
-                    case Block.BlockQuote quote -> walk(quote.blocks());
-                    default -> Stream.empty();
-                };
+        Stream<Block> nested;
+        if (block instanceof Block.ListBlock) {
+            nested =
+                    ((Block.ListBlock) block)
+                            .list()
+                            .items()
+                            .stream()
+                            .flatMap(item -> walk(item.blocks()));
+        } else if (block instanceof Block.TableBlock) {
+            nested =
+                    ((Block.TableBlock) block)
+                            .table()
+                            .grid()
+                            .stream()
+                            .flatMap(List::stream)
+                            .flatMap(Fixtures::originBlocks);
+        } else if (block instanceof Block.BlockQuote) {
+            nested = walk(((Block.BlockQuote) block).blocks());
+        } else {
+            nested = Stream.empty();
+        }
         return Stream.concat(Stream.of(block), nested);
     }
 
+    private static Stream<Block> originBlocks(CellSlot slot) {
+        if (slot instanceof CellSlot.Origin) {
+            return walk(((CellSlot.Origin) slot).cell().blocks());
+        }
+        return Stream.empty();
+    }
+
     static Stream<Inline> allInlines(Document document) {
-        Stream<Inline> body =
-                walk(document.blocks())
-                        .flatMap(
-                                block ->
-                                        switch (block) {
-                                            case Block.Heading heading -> inlines(heading.content());
-                                            case Block.Paragraph paragraph -> inlines(paragraph.content());
-                                            default -> Stream.empty();
-                                        });
+        Stream<Inline> body = walk(document.blocks()).flatMap(Fixtures::blockInlines);
         Stream<Inline> notes =
-                document.notes().stream().flatMap(note -> walk(note.blocks())).flatMap(block -> switch (block) {
-                    case Block.Heading heading -> inlines(heading.content());
-                    case Block.Paragraph paragraph -> inlines(paragraph.content());
-                    default -> Stream.empty();
-                });
+                document.notes().stream().flatMap(note -> walk(note.blocks())).flatMap(Fixtures::blockInlines);
         return Stream.concat(body, notes);
+    }
+
+    private static Stream<Inline> blockInlines(Block block) {
+        if (block instanceof Block.Heading) {
+            return inlines(((Block.Heading) block).content());
+        }
+        if (block instanceof Block.Paragraph) {
+            return inlines(((Block.Paragraph) block).content());
+        }
+        return Stream.empty();
     }
 }

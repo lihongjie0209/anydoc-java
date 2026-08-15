@@ -44,13 +44,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <junit.version>5.11.4</junit.version>
         <anydoc.fixtures>${project.basedir}/../anydoc/tests/fixtures</anydoc.fixtures>
         <skipNative>false</skipNative>
         <!-- Fallback when -Drevision is not passed (local test / untagged CI).
              make package / make publish always inject the git tag. -->
-        <revision>0.1.8</revision>
+        <revision>0.1.9</revision>
     </properties>
 
     <dependencies>

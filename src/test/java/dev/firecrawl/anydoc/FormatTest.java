@@ -65,7 +65,9 @@ class FormatTest {
     void formatFromExtensionMapsContainerVariants(String extension, Format expected) {
         assertEquals(Optional.of(expected), Anydoc.formatFromExtension(extension));
         assertEquals(Optional.of(expected), Anydoc.formatFromPath("file." + extension.replace(".", "")));
-        assertEquals(Optional.of(expected), Anydoc.formatFromPath(java.nio.file.Path.of("dir", "file." + extension.replace(".", ""))));
+        assertEquals(
+                Optional.of(expected),
+                Anydoc.formatFromPath(java.nio.file.Paths.get("dir", "file." + extension.replace(".", ""))));
     }
 
     @Test
