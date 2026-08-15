@@ -1,12 +1,20 @@
 <!-- Copy to ~/.m2/settings.xml (or merge the <server> and <repository>).
      GitHub Packages requires a token with `read:packages` (and SSO authorised
-     if the repo is in an org). A classic PAT or `gh auth token` works. -->
+     if the repo is in an org). A classic PAT or `gh auth token` works.
+
+     Maven Central publishes use server id `central` (a token from
+     https://central.sonatype.com/ → View Account → Generate User Token). -->
 <settings>
   <servers>
     <server>
       <id>github</id>
       <username>lihongjie0209</username>
       <password>YOUR_GITHUB_TOKEN</password>
+    </server>
+    <server>
+      <id>central</id>
+      <username>YOUR_CENTRAL_TOKEN_USERNAME</username>
+      <password>YOUR_CENTRAL_TOKEN_PASSWORD</password>
     </server>
   </servers>
   <profiles>

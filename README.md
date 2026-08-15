@@ -13,9 +13,9 @@ Runs on **Java 8 and newer** (11, 17, 21 included). The published JAR is compile
 
 The public model is Java 8-shaped: `Block`, `Inline`, `CellSlot`, `LinkTarget`, and `ImageSource` are interfaces with nested implementation classes. Inspect them with `instanceof` and a cast — there are no records, sealed types, or pattern-matching `switch` in the API.
 
-## Install (GitHub Packages)
+## Install
 
-Coordinates: `io.github.lihongjie0209:anydoc:0.1.9`
+Coordinates: `io.github.lihongjie0209:anydoc:0.1.9` on **Maven Central**.
 
 The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each.
 
@@ -30,28 +30,17 @@ Maven:
        linux-aarch64-musl, macos-x86_64, macos-aarch64, windows-x86_64 -->
   <!-- <classifier>linux-x86_64</classifier> -->
 </dependency>
-
-<repositories>
-  <repository>
-    <id>github</id>
-    <url>https://maven.pkg.github.com/lihongjie0209/anydoc-java</url>
-  </repository>
-</repositories>
 ```
 
 Gradle:
 
 ```kotlin
-repositories {
-    maven { url = uri("https://maven.pkg.github.com/lihongjie0209/anydoc-java") }
-}
-
 dependencies {
     implementation("io.github.lihongjie0209:anydoc:0.1.9")
 }
 ```
 
-GitHub Packages needs a token. See [`settings.xml.example`](settings.xml.example).
+Tagged releases also go to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages) and the GitHub Release. Packages still needs a token; see [`settings.xml.example`](settings.xml.example).
 
 ## Usage
 

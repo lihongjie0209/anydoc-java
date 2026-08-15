@@ -126,7 +126,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '8'
+          java-version: '17'
           cache: maven
 
       - uses: actions/download-artifact@v4
@@ -185,6 +185,25 @@ jobs:
               -DrepositoryId=github \
               -Durl=https://maven.pkg.github.com/lihongjie0209/anydoc-java
           done
+
+      - name: Publish to Maven Central
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -eu
+          if [ -z "${MAVEN_CENTRAL_PASSWORD:-}" ] || [ -z "${GPG_PRIVATE_KEY:-}" ]; then
+            echo "skip Maven Central: set MAVEN_CENTRAL_USERNAME, MAVEN_CENTRAL_PASSWORD, GPG_PRIVATE_KEY, GPG_PASSPHRASE"
+            exit 0
+          fi
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          export MAVEN_GPG_PASSPHRASE="$GPG_PASSPHRASE"
+          mvn -B -Pcentral -DskipNative -DskipTests deploy \
+            --settings .github/maven-settings.xml \
+            -Dgpg.passphrase="$GPG_PASSPHRASE"
 
       - name: Attach JARs to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
