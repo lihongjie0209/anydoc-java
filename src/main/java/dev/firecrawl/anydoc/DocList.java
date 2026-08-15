@@ -13,4 +13,9 @@ public record DocList(MarkerKind marker, long start, List<ListItem> items) {
         Objects.requireNonNull(items, "items");
         items = List.copyOf(items);
     }
+
+    /** True when this list's marker is a numbered one. */
+    public boolean ordered() {
+        return marker.ordered();
+    }
 }

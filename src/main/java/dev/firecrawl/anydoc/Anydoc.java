@@ -1,6 +1,7 @@
 package dev.firecrawl.anydoc;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
@@ -12,7 +13,7 @@ import java.util.Optional;
  * String markdown = Anydoc.toMarkdown(Path.of("report.docx"));
  * String fromBytes = Anydoc.toMarkdownBytes(bytes);
  * String fromCsv = Anydoc.toMarkdownBytes(bytes, Format.CSV);
- * Document document = Anydoc.toDocument(bytes);
+ * Document document = Anydoc.toDocument(Path.of("report.docx"));
  * }</pre>
  */
 public final class Anydoc {
@@ -57,6 +58,41 @@ public final class Anydoc {
     public static String toMarkdownBytes(byte[] data, Format format) {
         Objects.requireNonNull(data, "data");
         return nativeToMarkdownBytes(data, format);
+    }
+
+    /**
+     * Parse a document file into the document model. The format is detected from the file
+     * content; the extension is the fallback for signature-less formats (CSV) and unrecognizable
+     * containers, the same rules as {@link #toMarkdown(Path)}.
+     *
+     * <p>Unsupported for {@link Format#PDF}: PDF conversion produces Markdown directly and has no
+     * document-model form; use {@link #toMarkdown(Path)}.
+     */
+    public static Document toDocument(Path path) throws IOException {
+        Objects.requireNonNull(path, "path");
+        return toDocument(path.toString());
+    }
+
+    /**
+     * Parse a document file into the document model. The format is detected from the file
+     * content; the extension is the fallback for signature-less formats (CSV) and unrecognizable
+     * containers, the same rules as {@link #toMarkdown(String)}.
+     *
+     * <p>Unsupported for {@link Format#PDF}: PDF conversion produces Markdown directly and has no
+     * document-model form; use {@link #toMarkdown(String)}.
+     */
+    public static Document toDocument(String path) throws IOException {
+        Objects.requireNonNull(path, "path");
+        byte[] data = Files.readAllBytes(Path.of(path));
+        Format format =
+                formatFromBytes(data)
+                        .or(() -> formatFromPath(path))
+                        .orElseThrow(
+                                () ->
+                                        new UnsupportedException(
+                                                "unsupported input: unrecognized file content and extension: "
+                                                        + path));
+        return toDocument(data, format);
     }
 
     /**

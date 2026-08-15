@@ -11,6 +11,11 @@ public sealed interface LinkTarget permits LinkTarget.External, LinkTarget.Relat
     /** The URL, relative reference, or anchor id. */
     String value();
 
+    /** True when the target string is empty, whichever kind it is. */
+    default boolean isEmpty() {
+        return value().isEmpty();
+    }
+
     /** Absolute URL with a scheme. */
     record External(String value) implements LinkTarget {
         public External {

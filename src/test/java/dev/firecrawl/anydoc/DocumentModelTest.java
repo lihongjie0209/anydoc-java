@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -159,5 +160,77 @@ class DocumentModelTest {
         Document named = Anydoc.toDocument(Fixtures.bytes("docx", "handmade-outline.docx"), Format.DOCX);
         Document detected = Anydoc.toDocument(Fixtures.bytes("docx", "handmade-outline.docx"));
         assertEquals(named.blocks().size(), detected.blocks().size());
+    }
+
+    @Test
+    void pathToDocumentMatchesBytesAndUsesExtensionFallbackForCsv() throws IOException {
+        Path outline = Fixtures.path("docx", "handmade-outline.docx");
+        Document fromPath = Anydoc.toDocument(outline);
+        Document fromString = Anydoc.toDocument(outline.toString());
+        Document fromBytes = Anydoc.toDocument(Fixtures.bytes("docx", "handmade-outline.docx"));
+        assertEquals(fromBytes.blocks().size(), fromPath.blocks().size());
+        assertEquals(fromBytes.blocks().size(), fromString.blocks().size());
+
+        Document csv = Anydoc.toDocument(Fixtures.path("csv", "sheet.csv"));
+        assertFalse(csv.blocks().isEmpty());
+        assertTrue(Fixtures.walk(csv.blocks()).anyMatch(Block.TableBlock.class::isInstance));
+
+        assertThrows(
+                UnsupportedException.class,
+                () -> Anydoc.toDocument(Fixtures.path("pdf", "text.pdf")));
+    }
+
+    @Test
+    void pathToDocumentRejectsUnrecognizedFiles() throws IOException {
+        Path unknown = java.nio.file.Files.createTempFile("anydoc-unrecognized-", ".unknown");
+        try {
+            java.nio.file.Files.writeString(unknown, "not a document");
+            UnsupportedException error =
+                    assertThrows(UnsupportedException.class, () -> Anydoc.toDocument(unknown));
+            assertTrue(
+                    error.getMessage().contains("unrecognized file content and extension"),
+                    error.getMessage());
+        } finally {
+            java.nio.file.Files.deleteIfExists(unknown);
+        }
+    }
+
+    @Test
+    void parsedNumberedListIsOrderedAndMergedTableIsNotSingleCell() throws IOException {
+        Document numbered = Anydoc.toDocument(Fixtures.bytes("docx", "handmade-numbering.docx"));
+        DocList list =
+                Fixtures.walk(numbered.blocks())
+                        .filter(Block.ListBlock.class::isInstance)
+                        .map(Block.ListBlock.class::cast)
+                        .findFirst()
+                        .orElseThrow()
+                        .list();
+        assertTrue(list.ordered());
+        assertTrue(list.marker().ordered());
+
+        Document sheet = Anydoc.toDocument(Fixtures.bytes("xlsx", "handmade-merged.xlsx"));
+        Table table =
+                Fixtures.walk(sheet.blocks())
+                        .filter(Block.TableBlock.class::isInstance)
+                        .map(Block.TableBlock.class::cast)
+                        .findFirst()
+                        .orElseThrow()
+                        .table();
+        assertFalse(table.isSingleCell());
+        boolean sawEmpty = false;
+        boolean sawNonEmpty = false;
+        for (List<CellSlot> row : table.grid()) {
+            for (CellSlot slot : row) {
+                if (slot instanceof CellSlot.Origin origin) {
+                    if (origin.cell().isEmpty()) {
+                        sawEmpty = true;
+                    } else {
+                        sawNonEmpty = true;
+                    }
+                }
+            }
+        }
+        assertTrue(sawEmpty || sawNonEmpty);
+        assertTrue(sawNonEmpty, "merged fixture has content cells");
     }
 }

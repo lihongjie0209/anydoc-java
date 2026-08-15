@@ -175,7 +175,9 @@ class AnydocTest {
         assertThrows(NullPointerException.class, () -> Anydoc.toMarkdown((String) null));
         assertThrows(NullPointerException.class, () -> Anydoc.toMarkdown((Path) null));
         assertThrows(NullPointerException.class, () -> Anydoc.toMarkdownBytes(null));
-        assertThrows(NullPointerException.class, () -> Anydoc.toDocument(null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toDocument((byte[]) null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toDocument((String) null));
+        assertThrows(NullPointerException.class, () -> Anydoc.toDocument((Path) null));
     }
 
     private static byte[] emptyDocxPackage() throws IOException {
