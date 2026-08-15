@@ -144,6 +144,13 @@ build_one() {
 
   ensure_target "$triple"
 
+  case $classifier in
+    *-musl)
+      # Default musl targets are static and cannot emit a JNI cdylib.
+      export RUSTFLAGS="${RUSTFLAGS:-} -C target-feature=-crt-static"
+      ;;
+  esac
+
   zig_triple=$triple
   if is_linux_gnu "$classifier"; then
     zig_triple="${triple}.${GLIBC}"
