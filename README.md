@@ -9,7 +9,7 @@ Requires **Java 21**. Linux GNU builds are linked with [Zig](https://ziglang.org
 
 ## Install (GitHub Packages)
 
-Coordinates: `io.github.lihongjie0209:anydoc:0.1.6`
+Coordinates: `io.github.lihongjie0209:anydoc:0.1.7`
 
 The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each.
 
@@ -17,7 +17,7 @@ The default artifact is the **fat JAR** (every native library). Classifier JARs 
 <dependency>
   <groupId>io.github.lihongjie0209</groupId>
   <artifactId>anydoc</artifactId>
-  <version>0.1.6</version>
+  <version>0.1.7</version>
   <!-- optional: linux-x86_64, linux-aarch64, linux-x86_64-musl,
        linux-aarch64-musl, macos-x86_64, macos-aarch64, windows-x86_64 -->
   <!-- <classifier>linux-x86_64</classifier> -->
@@ -106,7 +106,7 @@ mvn -DskipNative -DskipTests package
 scripts/package-jars.sh
 ```
 
-That produces `target/anydoc-0.1.6.jar` (fat) and `target/anydoc-0.1.6-<classifier>.jar`.
+That produces `target/anydoc-0.1.7.jar` (fat) and `target/anydoc-0.1.7-<classifier>.jar`.
 
 A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR plus each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
 
