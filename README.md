@@ -1,6 +1,7 @@
 # anydoc for Java
 
 [![CI](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml/badge.svg)](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.lihongjie0209/anydoc.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF files into clean GitHub-Flavored Markdown, or into a typed document model. Java 8 bindings for the [anydoc](https://github.com/firecrawl/anydoc) Rust crate.
@@ -15,9 +16,11 @@ The public model is Java 8-shaped: `Block`, `Inline`, `CellSlot`, `LinkTarget`, 
 
 ## Install
 
-Coordinates: `io.github.lihongjie0209:anydoc:0.1.9` on **Maven Central**.
+Published on [Maven Central](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc/0.1.9). No extra `<repository>` is required.
 
-The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each.
+Coordinates: `io.github.lihongjie0209:anydoc:0.1.9`
+
+The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each and are on the [GitHub Release](https://github.com/lihongjie0209/anydoc-java/releases/tag/v0.1.9).
 
 Maven:
 
@@ -40,7 +43,7 @@ dependencies {
 }
 ```
 
-Tagged releases also go to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages) and the GitHub Release. Packages still needs a token; see [`settings.xml.example`](settings.xml.example).
+Tagged builds are also copied to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages) (token required; see [`settings.xml.example`](settings.xml.example)).
 
 ## Usage
 
@@ -271,7 +274,7 @@ scripts/package-jars.sh
 
 That produces `target/anydoc-0.1.9.jar` (fat) and `target/anydoc-0.1.9-<classifier>.jar`.
 
-A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR plus each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
+A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR to [Maven Central](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc), copies the fat JAR and each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
 
 Pull requests — including the automated upstream bump — only compile the host JNI library and run unit tests.
 
