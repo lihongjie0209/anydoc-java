@@ -1,0 +1,16 @@
+[package]
+name = "anydoc-java"
+version = "0.1.6"
+edition = "2024"
+rust-version = "1.88"
+description = "Java 21 JNI bindings for anydoc"
+license = "MIT"
+repository = "https://github.com/lihongjie0209/anydoc-java"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anydoc = { git = "https://github.com/firecrawl/anydoc", tag = "v0.1.6" }
+jni = "0.22.4"

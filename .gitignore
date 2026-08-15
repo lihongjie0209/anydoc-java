@@ -1,0 +1,13 @@
+/target
+/native/target
+/native/dist
+/.anydoc
+*.iml
+.idea/
+.classpath
+.project
+.settings/
+.vscode/
+*.class
+hs_err_pid*
+replay_pid*
