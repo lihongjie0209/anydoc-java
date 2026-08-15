@@ -21,10 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read pinned anydoc tag
+        id: pin
+        run: echo "tag=$(sh scripts/anydoc-tag.sh)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           repository: firecrawl/anydoc
-          ref: v0.1.6
+          ref: ${{ steps.pin.outputs.tag }}
           path: .anydoc
 
       - uses: dtolnay/rust-toolchain@stable
@@ -59,7 +63,8 @@ jobs:
   native:
     name: Native ${{ matrix.classifier }}
     needs: test
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    # PRs and dispatched runs on bump branches only need compile + unit tests.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
       matrix:

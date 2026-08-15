@@ -108,7 +108,29 @@ scripts/package-jars.sh
 
 That produces `target/anydoc-0.1.6.jar` (fat) and `target/anydoc-0.1.6-<classifier>.jar`.
 
-A tagged `v*` push (or **Actions → CI → Run workflow**) builds every platform, publishes the fat JAR plus each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
+A tagged `v*` push (or **Actions → CI → Run workflow** on `main`) builds every platform, publishes the fat JAR plus each classifier to [GitHub Packages](https://github.com/lihongjie0209/anydoc-java/packages), and attaches the JARs to the GitHub Release.
+
+Pull requests — including the automated upstream bump — only compile the host JNI library and run unit tests.
+
+## Upstream anydoc
+
+The JNI crate pins [firecrawl/anydoc](https://github.com/firecrawl/anydoc) by git tag in `native/Cargo.toml`. A scheduled workflow ([Upstream anydoc](.github/workflows/upstream.yml), daily plus **Run workflow**) checks GitHub Releases:
+
+1. If a newer `v*` tag exists, it rewrites the pin and `cargo update`s `Cargo.lock`.
+2. It opens a PR on `upstream/anydoc-vX.Y.Z`.
+3. It dispatches **CI** on that branch so compile + unit tests run against the new crate.
+
+Merge the PR only when that check is green.
+
+To have the PR itself emit the usual `pull_request` CI check (instead of a dispatched run), add a classic PAT with `repo` as the `UPSTREAM_BUMP_TOKEN` repository secret. Without it, `GITHUB_TOKEN` can still open the PR; GitHub will not start a `pull_request` workflow from that token, so the bump job dispatches CI explicitly.
+
+Locally:
+
+```bash
+scripts/bump-upstream.sh check          # current vs latest
+scripts/bump-upstream.sh apply          # rewrite the pin to latest
+scripts/bump-upstream.sh apply v0.1.9   # pin a specific tag
+```
 
 ## License
 

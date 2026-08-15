@@ -1,0 +1,93 @@
+name: Upstream anydoc
+
+on:
+  schedule:
+    # Daily; GitHub may drift the minute.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: upstream-anydoc
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump anydoc if a release is out
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.UPSTREAM_BUMP_TOKEN || github.token }}
+
+      - name: Current vs latest
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          current=$(sh scripts/bump-upstream.sh current)
+          latest=$(sh scripts/bump-upstream.sh latest)
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "current $current"
+          echo "latest  $latest"
+          if sh scripts/bump-upstream.sh check; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 10 ]; then
+              echo "needed=true" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.ver.outputs.needed == 'true'
+
+      - name: Pin Cargo.toml and refresh the lockfile
+        if: steps.ver.outputs.needed == 'true'
+        run: sh scripts/bump-upstream.sh apply "${{ steps.ver.outputs.latest }}"
+
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.ver.outputs.needed == 'true'
+        id: pr
+        with:
+          token: ${{ secrets.UPSTREAM_BUMP_TOKEN || github.token }}
+          commit-message: "chore: bump anydoc to ${{ steps.ver.outputs.latest }}"
+          branch: upstream/anydoc-${{ steps.ver.outputs.latest }}
+          delete-branch: true
+          title: "chore: bump anydoc to ${{ steps.ver.outputs.latest }}"
+          body: |
+            Automated bump of the Rust `anydoc` crate this binding compiles against.
+
+            | | tag |
+            | --- | --- |
+            | was | `${{ steps.ver.outputs.current }}` |
+            | now | `${{ steps.ver.outputs.latest }}` |
+
+            Changelog: https://github.com/firecrawl/anydoc/releases/tag/${{ steps.ver.outputs.latest }}
+            Diff: https://github.com/firecrawl/anydoc/compare/${{ steps.ver.outputs.current }}...${{ steps.ver.outputs.latest }}
+
+            CI compiles the JNI library (glibc 2.17) and runs the unit tests against this pin.
+            Merge only when that check is green.
+
+      - name: Trigger compile + unit tests on the PR branch
+        if: steps.ver.outputs.needed == 'true' && steps.pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          branch=${{ steps.pr.outputs.pull-request-branch }}
+          number=${{ steps.pr.outputs.pull-request-number }}
+          # GITHUB_TOKEN-opened PRs do not emit pull_request events.
+          # workflow_dispatch is allowed to start a new run; CI on a
+          # non-main branch only compiles and tests (no multi-arch publish).
+          gh workflow run ci.yml --ref "$branch"
+          echo "Dispatched CI on \`$branch\` for #$number" >> "$GITHUB_STEP_SUMMARY"
+          echo "PR: ${{ steps.pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
