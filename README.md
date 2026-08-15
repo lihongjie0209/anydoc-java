@@ -1,5 +1,7 @@
 # anydoc for Java
 
+**English** | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml/badge.svg)](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.lihongjie0209/anydoc.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.lihongjie0209/anydoc)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
