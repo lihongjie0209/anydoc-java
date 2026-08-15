@@ -3,7 +3,7 @@
 [![CI](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml/badge.svg)](https://github.com/lihongjie0209/anydoc-java/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF files into clean GitHub-Flavored Markdown. Java 21 bindings for the [anydoc](https://github.com/firecrawl/anydoc) Rust crate.
+Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF files into clean GitHub-Flavored Markdown, or into a typed document model. Java 21 bindings for the [anydoc](https://github.com/firecrawl/anydoc) Rust crate.
 
 Requires **Java 21**. Linux GNU builds are linked with [Zig](https://ziglang.org) against **glibc 2.17** (CentOS 7 / manylinux2014).
 
@@ -12,6 +12,8 @@ Requires **Java 21**. Linux GNU builds are linked with [Zig](https://ziglang.org
 Coordinates: `io.github.lihongjie0209:anydoc:0.1.8`
 
 The default artifact is the **fat JAR** (every native library). Classifier JARs ship one platform each.
+
+Maven:
 
 ```xml
 <dependency>
@@ -31,7 +33,210 @@ The default artifact is the **fat JAR** (every native library). Classifier JARs 
 </repositories>
 ```
 
+Gradle:
+
+```kotlin
+repositories {
+    maven { url = uri("https://maven.pkg.github.com/lihongjie0209/anydoc-java") }
+}
+
+dependencies {
+    implementation("io.github.lihongjie0209:anydoc:0.1.8")
+}
+```
+
 GitHub Packages needs a token. See [`settings.xml.example`](settings.xml.example).
+
+## Usage
+
+All public types live in `dev.firecrawl.anydoc`. The entry point is `Anydoc`. Format is detected from file content; the path extension is only a fallback for signature-less formats (CSV) and unrecognizable containers. In-memory CSV must name `Format.CSV` explicitly.
+
+### Convert to Markdown
+
+```java
+import dev.firecrawl.anydoc.Anydoc;
+import dev.firecrawl.anydoc.Format;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+String fromFile = Anydoc.toMarkdown(Path.of("report.docx"));
+String fromBytes = Anydoc.toMarkdownBytes(Files.readAllBytes(Path.of("report.docx")));
+String fromCsv = Anydoc.toMarkdownBytes(csvBytes, Format.CSV);
+```
+
+`toMarkdown(Path)` / `toMarkdown(String)` throw `IOException` if the file cannot be read. Conversion failures throw a `ConvertException` subclass (unchecked).
+
+### Parse the document model
+
+```java
+import dev.firecrawl.anydoc.Anydoc;
+import dev.firecrawl.anydoc.Block;
+import dev.firecrawl.anydoc.Document;
+import dev.firecrawl.anydoc.Inlines;
+
+Document document = Anydoc.toDocument(Path.of("report.docx"));
+
+for (Block block : document.blocks()) {
+    switch (block) {
+        case Block.Heading heading ->
+                System.out.println(heading.level() + " " + Inlines.toPlainText(heading.content()));
+        case Block.Paragraph paragraph ->
+                System.out.println(Inlines.toPlainText(paragraph.content()));
+        case Block.ListBlock list ->
+                System.out.println("list items: " + list.list().items().size());
+        case Block.TableBlock table ->
+                System.out.println("rows: " + table.table().grid().size());
+        case Block.BlockQuote quote ->
+                System.out.println("quote blocks: " + quote.blocks().size());
+        case Block.CodeBlock code ->
+                System.out.println(code.lang() + "\n" + code.text());
+        case Block.Rule ignored ->
+                System.out.println("---");
+    }
+}
+```
+
+PDF has no document-model form: use `toMarkdown`. `toDocument` on a PDF throws `UnsupportedException`.
+
+### Detect the format
+
+```java
+Anydoc.formatFromBytes(bytes);      // content signature; empty for CSV / unknown
+Anydoc.formatFromPath("sheet.csv"); // extension only
+Anydoc.formatFromExtension(".pptm"); // container variants map onto Format (PPTX, …)
+```
+
+Path-based `toMarkdown` / `toDocument` try content first, then the extension.
+
+### Load the native library
+
+The JNI library is extracted from `/native/{classifier}/` inside the JAR on first use of `Anydoc`. Override when the automatic guess is wrong:
+
+| Property | Meaning |
+| -------- | ------- |
+| `-Danydoc.native.classifier=linux-x86_64` | Force a packaged classifier |
+| `-Danydoc.native.path=/path/to/libanydoc_java.so` | Load a file from disk |
+
+## Core API
+
+The binding is a thin, typed view of the crate. Sealed interfaces (`Block`, `Inline`, `CellSlot`, `LinkTarget`, `ImageSource`) are meant to be switched on.
+
+### `Anydoc`
+
+| Method | Returns | Notes |
+| ------ | ------- | ----- |
+| `toMarkdown(Path \| String)` | `String` | File on disk; may throw `IOException` |
+| `toMarkdownBytes(byte[])` | `String` | Detect format from content |
+| `toMarkdownBytes(byte[], Format)` | `String` | Required for CSV |
+| `toDocument(Path \| String)` | `Document` | Same detect rules as `toMarkdown`; not for PDF |
+| `toDocument(byte[])` | `Document` | Detect format from content |
+| `toDocument(byte[], Format)` | `Document` | Required for CSV |
+| `formatFromBytes(byte[])` | `Optional<Format>` | Signature / container identity |
+| `formatFromPath(Path \| String)` | `Optional<Format>` | Extension only |
+| `formatFromExtension(String)` | `Optional<Format>` | With or without a leading dot |
+
+### `Format`
+
+`DOC`, `DOCX`, `ODT`, `PDF`, `PPT`, `PPTX`, `RTF`, `EPUB`, `XLSX`, `ODS`, `ODP`, `CSV`.
+
+`wireName()` is the lowercase name other bindings use (`"docx"`, `"xlsx"`). `Format.fromWireName("docx")` parses it. Container siblings (`.docm`, `.xlsm`, `.ppsx`, …) collapse onto these values.
+
+### `Document`
+
+```text
+Document
+├── blocks()   List<Block>    body
+├── notes()    List<Note>     footnotes / endnotes
+└── assets()   List<Asset>    embedded binaries (images, objects)
+```
+
+A document is self-contained: asset bytes stay on the `Asset`, so you do not need the original file after parse.
+
+### `Block`
+
+| Type | `kind()` | Fields |
+| ---- | -------- | ------ |
+| `Block.Heading` | `heading` | `level`, `anchor`, `content` (`List<Inline>`) |
+| `Block.Paragraph` | `paragraph` | `content` |
+| `Block.ListBlock` | `list` | `list` (`DocList`) |
+| `Block.TableBlock` | `table` | `table` (`Table`) |
+| `Block.BlockQuote` | `block_quote` | `blocks` (nested) |
+| `Block.CodeBlock` | `code_block` | `lang`, `text` |
+| `Block.Rule` | `rule` | (thematic break) |
+
+### `Inline`
+
+| Type | `kind()` | Fields |
+| ---- | -------- | ------ |
+| `Inline.Text` | `text` | `text`, `style` (`Style`: bold / italic / strike / code) |
+| `Inline.Link` | `link` | `content`, `target` (`LinkTarget`) |
+| `Inline.Image` | `image` | `alt`, `source` (`ImageSource`) |
+| `Inline.Anchor` | `anchor` | `id` (zero-width internal target) |
+| `Inline.NoteRef` | `note_ref` | `noteId` → `Document.notes()` |
+| `Inline.LineBreak` | `line_break` | |
+
+`Style.PLAIN` is all toggles off.
+
+**`LinkTarget`:** `External` (absolute URL), `Relative` (as written), `Anchor` (heading or `Inline.Anchor`). `isEmpty()` is true when the target string is empty.
+
+**`ImageSource`:** `External` (URL), `AssetRef` (`assetId` into `Document.assets()`), `Unavailable` (alt text only).
+
+### Lists
+
+`DocList(marker, start, items)` — named so it does not collide with `java.util.List`.
+
+- `marker()`: `MarkerKind` — `BULLET`, `DECIMAL`, `LOWER_ALPHA`, `UPPER_ALPHA`, `LOWER_ROMAN`, `UPPER_ROMAN`
+- `ordered()`: every kind except `BULLET`
+- `marker.label(n)` / `marker.ordinal(n)`: `3.`, `c.`, `iv.` (1-based)
+- `ListItem(blocks, checked, markerLabel)`: `checked` is non-null for task-list items; `blocks` may nest further lists
+
+### Tables
+
+`Table(grid, headerRows, kind)` is a canonical grid: every logical position appears once.
+
+- `TableKind.DATA` vs `TableKind.LAYOUT` (text boxes / positioning)
+- `isSingleCell()`: one origin cell
+- `CellSlot.Origin(cell)` holds content and spans
+- `CellSlot.Covered(originRow, originCol)` is padding under a span
+- `Cell(blocks, colSpan, rowSpan).isEmpty()`: true only when every block is an empty paragraph
+
+### Notes and assets
+
+- `Note(id, kind, blocks)` — `NoteKind.FOOTNOTE` or `ENDNOTE`
+- `Asset(id, mediaType, originPart, data)` — `data()` returns a clone; `id` matches `ImageSource.AssetRef`
+
+### Helpers
+
+| Type | Method | Role |
+| ---- | ------ | ---- |
+| `Inlines` | `toPlainText(List<Inline>)` | Flatten text; keep link text and image alt; drop anchors / note refs; line breaks → `\n` |
+| `Inlines` | `areEmpty(List<Inline>)` | True when nothing would render (whitespace, empty-target links, anchors, breaks) |
+| `Platform` | `detect()` / `all()` | Native target the loader picked |
+
+## Errors
+
+Catch `ConvertException` for every conversion failure, or a subclass to single one out.
+
+| Exception | `code()` | When |
+| --------- | -------- | ---- |
+| `UnsupportedException` | `unsupported` | Unknown format, image-only / scanned PDF, or `toDocument` on a PDF |
+| `MalformedException` | `malformed` | Structurally unusable; `part()` names the stream if one is at fault |
+| `EncryptedException` | `encrypted` | Encrypted or password-protected |
+| `ResourceLimitException` | `resourceLimit` | Safety limit; `limit()` names it (`max_entry_bytes`, …) |
+| `MissingPartException` | `missingPart` | A required package part is absent; `part()` names it |
+
+`code()` matches the Node/wasm `error.code` strings. An unreadable file from `toMarkdown(Path)` throws `IOException`, not `ConvertException`.
+
+```java
+try {
+    String markdown = Anydoc.toMarkdown(path);
+} catch (EncryptedException e) {
+    // ask for a password elsewhere; anydoc does not decrypt
+} catch (ConvertException e) {
+    System.err.println(e.code() + ": " + e.getMessage());
+}
+```
 
 ## Supported platforms
 
@@ -44,46 +249,6 @@ GitHub Packages needs a token. See [`settings.xml.example`](settings.xml.example
 | `macos-x86_64`        | `x86_64-apple-darwin`         | Intel Mac                      |
 | `macos-aarch64`       | `aarch64-apple-darwin`        | Apple Silicon                  |
 | `windows-x86_64`      | `x86_64-pc-windows-msvc`      | Windows x64                    |
-
-The loader picks `/native/{classifier}/` from the JAR. Override with `-Danydoc.native.classifier=...` or `-Danydoc.native.path=/path/to/libanydoc_java.so`.
-
-## Usage
-
-```java
-import dev.firecrawl.anydoc.Anydoc;
-import dev.firecrawl.anydoc.Document;
-import dev.firecrawl.anydoc.Format;
-
-import java.nio.file.Path;
-
-String markdown = Anydoc.toMarkdown(Path.of("report.docx"));
-String fromBytes = Anydoc.toMarkdownBytes(data);
-String fromCsv = Anydoc.toMarkdownBytes(data, Format.CSV);
-Document document = Anydoc.toDocument(data);
-```
-
-```java
-for (Block block : document.blocks()) {
-    switch (block) {
-        case Block.Heading heading -> System.out.println(heading.level());
-        case Block.TableBlock table -> System.out.println(table.table().grid().size());
-        default -> {}
-    }
-}
-```
-
-## Errors
-
-| Exception                | When                                                              |
-| ------------------------ | ----------------------------------------------------------------- |
-| `UnsupportedException`   | Unknown format, or cannot be converted (an image-only PDF)        |
-| `MalformedException`     | Structurally unusable                                             |
-| `EncryptedException`     | Encrypted or password-protected                                   |
-| `ResourceLimitException` | Safety limit (decompression, nesting, node count)                 |
-| `MissingPartException`   | A required package part is absent                                 |
-| `IOException`            | The file could not be read, from `toMarkdown` only                |
-
-All five conversion failures subclass `ConvertException`. `code()` matches the Node/wasm `error.code` strings.
 
 ## Building
 
