@@ -12,5 +12,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-anydoc = { git = "https://github.com/firecrawl/anydoc", tag = "v0.1.9" }
+anydoc = { git = "https://github.com/firecrawl/anydoc", tag = "v0.2.0" }
 jni = "0.22.4"
